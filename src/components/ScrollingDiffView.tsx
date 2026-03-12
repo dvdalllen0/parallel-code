@@ -9,6 +9,9 @@ import { invoke } from '../lib/ipc';
 import { IPC } from '../../electron/ipc/channels';
 import type { FileDiff, Hunk, DiffLine } from '../lib/unified-diff-parser';
 import type { FileDiffResult } from '../ipc/types';
+import { getDiffSelection, type DiffSelection } from '../lib/diff-selection';
+import { AskCodeCard } from './AskCodeCard';
+import { InlineQuestionInput } from './InlineQuestionInput';
 
 interface ScrollingDiffViewProps {
   files: FileDiff[];
@@ -39,6 +42,36 @@ function indicatorColor(type: DiffLine['type']): string {
   if (type === 'add') return theme.success;
   if (type === 'remove') return theme.error;
   return theme.fgSubtle;
+}
+
+interface HighlightRange {
+  filePath: string;
+  startLine: number;
+  endLine: number;
+}
+
+function isLineHighlighted(
+  range: HighlightRange | null | undefined,
+  filePath: string,
+  newLine: number | null,
+): boolean {
+  return (
+    !!range &&
+    range.filePath === filePath &&
+    newLine !== null &&
+    newLine >= range.startLine &&
+    newLine <= range.endLine
+  );
+}
+
+interface ActiveQuestion {
+  id: string;
+  filePath: string;
+  afterLine: number;
+  question: string;
+  startLine: number;
+  endLine: number;
+  selectedText: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -97,13 +130,20 @@ function DiffLineView(props: {
   line: DiffLine;
   highlightedHtml: string | null;
   searchQuery?: string;
+  filePath: string;
+  highlighted?: boolean;
 }) {
+  const bg = () => (props.highlighted ? 'rgba(100, 160, 255, 0.35)' : LINE_BG[props.line.type]);
+
   return (
     <div
+      data-file-path={props.filePath}
+      data-new-line={props.line.newLine ?? undefined}
+      data-line-type={props.line.type}
       style={{
         display: 'grid',
         'grid-template-columns': '40px 40px 1rem 1fr',
-        background: LINE_BG[props.line.type],
+        background: bg(),
         'font-family': "'JetBrains Mono', monospace",
         'font-size': sf(12),
         'line-height': '1.5',
@@ -173,7 +213,16 @@ function DiffLineView(props: {
   );
 }
 
-function HunkView(props: { hunk: Hunk; lang: string; searchQuery?: string }) {
+function HunkView(props: {
+  hunk: Hunk;
+  lang: string;
+  searchQuery?: string;
+  filePath: string;
+  highlightedRange?: HighlightRange | null;
+  pendingInputAfterLine?: number | null;
+  onAskSubmit?: (question: string) => void;
+  onAskDismiss?: () => void;
+}) {
   const [highlighted, setHighlighted] = createSignal<string[] | null>(null);
 
   onMount(() => {
@@ -188,11 +237,25 @@ function HunkView(props: { hunk: Hunk; lang: string; searchQuery?: string }) {
   return (
     <For each={props.hunk.lines}>
       {(line, i) => (
-        <DiffLineView
-          line={line}
-          highlightedHtml={highlighted()?.[i()] ?? null}
-          searchQuery={props.searchQuery}
-        />
+        <>
+          <DiffLineView
+            line={line}
+            highlightedHtml={highlighted()?.[i()] ?? null}
+            searchQuery={props.searchQuery}
+            filePath={props.filePath}
+            highlighted={isLineHighlighted(props.highlightedRange, props.filePath, line.newLine)}
+          />
+          <Show
+            when={
+              props.pendingInputAfterLine !== null && line.newLine === props.pendingInputAfterLine
+            }
+          >
+            <InlineQuestionInput
+              onSubmit={(q) => props.onAskSubmit?.(q)}
+              onDismiss={() => props.onAskDismiss?.()}
+            />
+          </Show>
+        </>
       )}
     </For>
   );
@@ -205,6 +268,7 @@ function ExpandableGap(props: {
   worktreePath: string;
   filePath: string;
   searchQuery?: string;
+  highlightedRange?: HighlightRange | null;
 }) {
   const [expanded, setExpanded] = createSignal(false);
   const [lines, setLines] = createSignal<DiffLine[]>([]);
@@ -287,6 +351,8 @@ function ExpandableGap(props: {
             line={line}
             highlightedHtml={highlighted()?.[i()] ?? null}
             searchQuery={props.searchQuery}
+            filePath={props.filePath}
+            highlighted={isLineHighlighted(props.highlightedRange, props.filePath, line.newLine)}
           />
         )}
       </For>
@@ -300,6 +366,12 @@ function FileSection(props: {
   ref: (el: HTMLDivElement) => void;
   dimmed: boolean;
   searchQuery?: string;
+  activeQuestions: ActiveQuestion[];
+  onDismissQuestion: (id: string) => void;
+  highlightedRange?: HighlightRange | null;
+  pendingInput?: { filePath: string; afterLine: number } | null;
+  onAskSubmit: (question: string) => void;
+  onAskDismiss: () => void;
 }) {
   const [collapsed, setCollapsed] = createSignal(false);
   const lang = () => detectLang(props.file.path);
@@ -453,9 +525,46 @@ function FileSection(props: {
                       worktreePath={props.worktreePath}
                       filePath={props.file.path}
                       searchQuery={props.searchQuery}
+                      highlightedRange={props.highlightedRange}
                     />
                   </Show>
-                  <HunkView hunk={hunk} lang={lang()} searchQuery={props.searchQuery} />
+                  <HunkView
+                    hunk={hunk}
+                    lang={lang()}
+                    searchQuery={props.searchQuery}
+                    filePath={props.file.path}
+                    highlightedRange={props.highlightedRange}
+                    pendingInputAfterLine={
+                      props.pendingInput?.filePath === props.file.path
+                        ? props.pendingInput.afterLine
+                        : null
+                    }
+                    onAskSubmit={props.onAskSubmit}
+                    onAskDismiss={props.onAskDismiss}
+                  />
+                  <For
+                    each={props.activeQuestions.filter((q) => {
+                      const nextHunkStart = props.file.hunks[hunkIdx() + 1]?.newStart ?? Infinity;
+                      return (
+                        q.filePath === props.file.path &&
+                        q.afterLine >= hunk.newStart &&
+                        q.afterLine < nextHunkStart
+                      );
+                    })}
+                  >
+                    {(q) => (
+                      <AskCodeCard
+                        requestId={q.id}
+                        question={q.question}
+                        filePath={q.filePath}
+                        startLine={q.startLine}
+                        endLine={q.endLine}
+                        selectedText={q.selectedText}
+                        worktreePath={props.worktreePath}
+                        onDismiss={() => props.onDismissQuestion(q.id)}
+                      />
+                    )}
+                  </For>
                 </>
               )}
             </For>
@@ -475,6 +584,10 @@ export function ScrollingDiffView(props: ScrollingDiffViewProps) {
   const [dimOthers, setDimOthers] = createSignal(false);
   let dimTimer: ReturnType<typeof setTimeout> | undefined;
   let containerRef: HTMLDivElement | undefined;
+
+  const [pendingInput, setPendingInput] = createSignal<DiffSelection | null>(null);
+  const [activeQuestions, setActiveQuestions] = createSignal<ActiveQuestion[]>([]);
+  const [highlightedRange, setHighlightedRange] = createSignal<HighlightRange | null>(null);
 
   onCleanup(() => clearTimeout(dimTimer));
 
@@ -513,6 +626,59 @@ export function ScrollingDiffView(props: ScrollingDiffViewProps) {
     });
   });
 
+  onMount(() => {
+    function onMouseUp() {
+      requestAnimationFrame(() => {
+        const sel = getDiffSelection();
+        if (!sel) {
+          setPendingInput(null);
+          setHighlightedRange(null);
+          return;
+        }
+
+        setPendingInput(sel);
+        setHighlightedRange({
+          filePath: sel.filePath,
+          startLine: sel.startLine,
+          endLine: sel.endLine,
+        });
+      });
+    }
+
+    containerRef?.addEventListener('mouseup', onMouseUp);
+    onCleanup(() => containerRef?.removeEventListener('mouseup', onMouseUp));
+  });
+
+  function handleAsk(question: string) {
+    const sel = pendingInput();
+    if (!sel) return;
+    const id = crypto.randomUUID();
+    setActiveQuestions((prev) => [
+      ...prev,
+      {
+        id,
+        filePath: sel.filePath,
+        afterLine: sel.endLine,
+        question,
+        startLine: sel.startLine,
+        endLine: sel.endLine,
+        selectedText: sel.selectedText,
+      },
+    ]);
+    setPendingInput(null);
+    setHighlightedRange(null);
+    window.getSelection()?.removeAllRanges();
+  }
+
+  function dismissInput() {
+    setPendingInput(null);
+    setHighlightedRange(null);
+  }
+
+  function dismissQuestion(id: string) {
+    setActiveQuestions((prev) => prev.filter((q) => q.id !== id));
+  }
+
   return (
     <div
       ref={containerRef}
@@ -520,6 +686,7 @@ export function ScrollingDiffView(props: ScrollingDiffViewProps) {
         height: '100%',
         'overflow-y': 'auto',
         background: '#000',
+        position: 'relative',
       }}
     >
       <For each={props.files}>
@@ -530,6 +697,17 @@ export function ScrollingDiffView(props: ScrollingDiffViewProps) {
             ref={(el) => sectionRefs.set(file.path, el)}
             dimmed={dimOthers() && file.path !== props.scrollToPath}
             searchQuery={props.searchQuery}
+            activeQuestions={activeQuestions()}
+            onDismissQuestion={dismissQuestion}
+            highlightedRange={highlightedRange()}
+            pendingInput={(() => {
+              const pi = pendingInput();
+              return pi && pi.filePath === file.path
+                ? { filePath: file.path, afterLine: pi.endLine }
+                : null;
+            })()}
+            onAskSubmit={handleAsk}
+            onAskDismiss={dismissInput}
           />
         )}
       </For>

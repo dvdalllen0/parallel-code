@@ -40,6 +40,7 @@ import { createTask, deleteTask } from './tasks.js';
 import { listAgents } from './agents.js';
 import { saveAppState, loadAppState } from './persistence.js';
 import { spawn } from 'child_process';
+import { askAboutCode, cancelAskAboutCode } from './ask-code.js';
 import path from 'path';
 import {
   assertString,
@@ -292,6 +293,25 @@ export function registerAllHandlers(win: BrowserWindow): void {
   ipcMain.handle(IPC.CheckPathExists, (_e, args) => {
     validatePath(args.path, 'path');
     return fs.existsSync(args.path);
+  });
+
+  // --- Ask about code ---
+  ipcMain.handle(IPC.AskAboutCode, (_e, args) => {
+    assertString(args.requestId, 'requestId');
+    assertString(args.prompt, 'prompt');
+    assertString(args.onOutput?.__CHANNEL_ID__, 'channelId');
+    validatePath(args.cwd, 'cwd');
+    askAboutCode(win, {
+      requestId: args.requestId,
+      channelId: args.onOutput.__CHANNEL_ID__,
+      prompt: args.prompt,
+      cwd: args.cwd,
+    });
+  });
+
+  ipcMain.handle(IPC.CancelAskAboutCode, (_e, args) => {
+    assertString(args.requestId, 'requestId');
+    cancelAskAboutCode(args.requestId);
   });
 
   // --- Window management ---
