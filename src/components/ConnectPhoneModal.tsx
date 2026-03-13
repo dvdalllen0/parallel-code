@@ -138,7 +138,7 @@ export function ConnectPhoneModal(props: ConnectPhoneModalProps) {
     'font-size': '12px',
     cursor: 'pointer',
     background: active ? theme.accent : 'transparent',
-    color: active ? '#fff' : theme.fgMuted,
+    color: active ? theme.accentText : theme.fgMuted,
     'font-weight': active ? '600' : '400',
   });
 

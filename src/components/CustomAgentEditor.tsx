@@ -174,7 +174,7 @@ export function CustomAgentEditor() {
                 background: theme.accent,
                 border: 'none',
                 'border-radius': '6px',
-                color: '#fff',
+                color: theme.accentText,
                 cursor: 'pointer',
                 'font-size': '12px',
                 opacity: name().trim() && command().trim() ? 1 : 0.5,

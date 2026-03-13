@@ -41,6 +41,7 @@ export function InlineInput(props: InlineInputProps) {
       onMouseUp={(e) => e.stopPropagation()}
       style={{
         margin: '4px 40px 4px 80px',
+        'max-width': '560px',
         display: 'flex',
         gap: '4px',
         padding: '4px',
@@ -65,7 +66,7 @@ export function InlineInput(props: InlineInputProps) {
           onClick={() => setMode('review')}
           style={{
             background: mode() === 'review' ? theme.warning : 'transparent',
-            color: mode() === 'review' ? '#fff' : theme.fgMuted,
+            color: mode() === 'review' ? theme.accentText : theme.fgMuted,
             border: 'none',
             'font-size': sf(10),
             padding: '2px 8px',
@@ -78,7 +79,7 @@ export function InlineInput(props: InlineInputProps) {
           onClick={() => setMode('ask')}
           style={{
             background: mode() === 'ask' ? theme.accent : 'transparent',
-            color: mode() === 'ask' ? '#fff' : theme.fgMuted,
+            color: mode() === 'ask' ? theme.accentText : theme.fgMuted,
             border: 'none',
             'font-size': sf(10),
             padding: '2px 8px',
@@ -117,7 +118,7 @@ export function InlineInput(props: InlineInputProps) {
         style={{
           background: text().trim() ? borderColor() : 'transparent',
           border: `1px solid ${text().trim() ? borderColor() : theme.borderSubtle}`,
-          color: text().trim() ? '#fff' : theme.fgMuted,
+          color: text().trim() ? theme.accentText : theme.fgMuted,
           cursor: text().trim() ? 'pointer' : 'default',
           padding: '4px 10px',
           'border-radius': '4px',

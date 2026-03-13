@@ -38,18 +38,18 @@ import { ChangedFilesList } from './ChangedFilesList';
 import { StatusDot } from './StatusDot';
 import { TerminalView } from './TerminalView';
 import { ScalablePanel } from './ScalablePanel';
-import { Dialog } from './Dialog';
 import { CloseTaskDialog } from './CloseTaskDialog';
 import { MergeDialog } from './MergeDialog';
 import { PushDialog } from './PushDialog';
 import { DiffViewerDialog } from './DiffViewerDialog';
+import { PlanViewerDialog } from './PlanViewerDialog';
 import { EditProjectDialog } from './EditProjectDialog';
 import { theme } from '../lib/theme';
 import { sf } from '../lib/fontScale';
 import { mod, isMac } from '../lib/platform';
 import { extractLabel, consumePendingShellCommand } from '../lib/bookmarks';
 import { handleDragReorder } from '../lib/dragReorder';
-import { marked } from 'marked';
+import { createHighlightedMarkdown } from '../lib/marked-shiki';
 import type { Task } from '../store/types';
 
 interface TaskPanelProps {
@@ -61,6 +61,7 @@ export function TaskPanel(props: TaskPanelProps) {
   const [showCloseConfirm, setShowCloseConfirm] = createSignal(false);
   const [notesTab, setNotesTab] = createSignal<'notes' | 'plan'>('notes');
   const [planFullscreen, setPlanFullscreen] = createSignal(false);
+  const planHtml = createHighlightedMarkdown(() => props.task.planContent);
 
   // Auto-switch to plan tab when plan content first appears
   let hadPlan = false;
@@ -88,6 +89,7 @@ export function TaskPanel(props: TaskPanelProps) {
   let panelRef!: HTMLDivElement;
   let promptRef: HTMLTextAreaElement | undefined;
   let notesRef: HTMLTextAreaElement | undefined;
+  let reviewPlanBtnRef: HTMLButtonElement | undefined;
   let changedFilesRef: HTMLDivElement | undefined;
   let shellToolbarRef: HTMLDivElement | undefined;
   let titleEditHandle: EditableTextHandle | undefined;
@@ -104,7 +106,13 @@ export function TaskPanel(props: TaskPanelProps) {
   onMount(() => {
     const id = props.task.id;
     registerFocusFn(`${id}:title`, () => titleEditHandle?.startEdit());
-    registerFocusFn(`${id}:notes`, () => notesRef?.focus());
+    registerFocusFn(`${id}:notes`, () => {
+      if (notesTab() === 'plan') {
+        reviewPlanBtnRef?.focus();
+      } else {
+        notesRef?.focus();
+      }
+    });
     registerFocusFn(`${id}:changed-files`, () => {
       changedFilesRef?.focus();
     });
@@ -559,22 +567,6 @@ export function TaskPanel(props: TaskPanelProps) {
                         >
                           Plan
                         </button>
-                        <button
-                          style={{
-                            'margin-left': 'auto',
-                            padding: '2px 6px',
-                            'font-size': sf(10),
-                            background: 'transparent',
-                            color: theme.fgMuted,
-                            border: 'none',
-                            cursor: 'pointer',
-                            'font-family': "'JetBrains Mono', monospace",
-                          }}
-                          title="Open plan fullscreen"
-                          onClick={() => setPlanFullscreen(true)}
-                        >
-                          {'⤢'}
-                        </button>
                       </div>
                     </Show>
 
@@ -603,21 +595,57 @@ export function TaskPanel(props: TaskPanelProps) {
 
                     <Show when={notesTab() === 'plan' && store.showPlans && props.task.planContent}>
                       <div
-                        class="plan-markdown"
                         style={{
                           flex: '1',
-                          overflow: 'auto',
-                          padding: '6px 8px',
-                          background: theme.taskPanelBg,
-                          color: theme.fg,
-                          'font-size': sf(11),
-                          'font-family': "'JetBrains Mono', monospace",
+                          overflow: 'hidden',
+                          display: 'flex',
+                          'flex-direction': 'column',
+                          position: 'relative',
                         }}
-                        // eslint-disable-next-line solid/no-innerhtml -- plan files are local, written by Claude Code in the worktree
-                        innerHTML={
-                          marked.parse(props.task.planContent ?? '', { async: false }) as string
-                        }
-                      />
+                      >
+                        <div
+                          class="plan-markdown"
+                          style={{
+                            flex: '1',
+                            overflow: 'auto',
+                            padding: '6px 8px',
+                            background: theme.taskPanelBg,
+                            color: theme.fg,
+                            'font-size': sf(11),
+                            'font-family': "'JetBrains Mono', monospace",
+                          }}
+                          // eslint-disable-next-line solid/no-innerhtml -- plan files are local, written by Claude Code in the worktree
+                          innerHTML={planHtml()}
+                        />
+                        <div
+                          style={{
+                            display: 'flex',
+                            'justify-content': 'center',
+                            padding: '6px 0',
+                            'flex-shrink': '0',
+                            'border-top': `1px solid ${theme.border}`,
+                            background: theme.taskPanelBg,
+                          }}
+                        >
+                          <button
+                            ref={reviewPlanBtnRef}
+                            class="btn-secondary"
+                            style={{
+                              padding: '4px 16px',
+                              'font-size': sf(11),
+                              'font-family': "'JetBrains Mono', monospace",
+                              background: theme.bgInput,
+                              color: theme.fgMuted,
+                              border: `1px solid ${theme.border}`,
+                              'border-radius': '6px',
+                              cursor: 'pointer',
+                            }}
+                            onClick={() => setPlanFullscreen(true)}
+                          >
+                            Review Plan
+                          </button>
+                        </div>
+                      </div>
                     </Show>
                   </div>
                 </ScalablePanel>
@@ -1314,20 +1342,15 @@ export function TaskPanel(props: TaskPanelProps) {
         agentId={props.task.agentIds[0]}
       />
       <EditProjectDialog project={editingProject()} onClose={() => setEditingProjectId(null)} />
-      <Dialog open={planFullscreen()} onClose={() => setPlanFullscreen(false)} width="800px">
-        <div
-          class="plan-markdown"
-          style={{
-            color: theme.fg,
-            'font-size': '15px',
-            'font-family': "'JetBrains Mono', monospace",
-            'max-height': '70vh',
-            overflow: 'auto',
-          }}
-          // eslint-disable-next-line solid/no-innerhtml -- plan files are local, written by Claude Code in the worktree
-          innerHTML={marked.parse(props.task.planContent ?? '', { async: false }) as string}
-        />
-      </Dialog>
+      <PlanViewerDialog
+        open={planFullscreen()}
+        onClose={() => setPlanFullscreen(false)}
+        planContent={props.task.planContent ?? ''}
+        planFileName={props.task.planFileName ?? 'plan.md'}
+        taskId={props.task.id}
+        agentId={props.task.agentIds[0]}
+        worktreePath={props.task.worktreePath}
+      />
     </div>
   );
 }
