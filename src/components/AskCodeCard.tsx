@@ -32,7 +32,14 @@ export function AskCodeCard(props: AskCodeCardProps) {
 
   channel.onmessage = (msg) => {
     if (msg.type === 'chunk') {
-      setResponse((prev) => (prev.length < MAX_RESPONSE_LENGTH ? prev + (msg.text ?? '') : prev));
+      setResponse((prev) => {
+        if (prev.length >= MAX_RESPONSE_LENGTH) return prev;
+        const next = prev + (msg.text ?? '');
+        if (next.length >= MAX_RESPONSE_LENGTH) {
+          return next.slice(0, MAX_RESPONSE_LENGTH) + '\n\n[Response truncated]';
+        }
+        return next;
+      });
     } else if (msg.type === 'error') {
       setError((prev) => prev + (msg.text ?? ''));
     } else if (msg.type === 'done') {
