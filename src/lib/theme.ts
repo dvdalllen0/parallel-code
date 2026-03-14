@@ -41,11 +41,11 @@ export const theme = {
 
 /** Opaque terminal background per preset — matches --task-panel-bg */
 const terminalBackground: Record<LookPreset, string> = {
-  classic: '#222326',
-  graphite: '#121820',
-  indigo: '#121529',
-  ember: '#1b1312',
-  glacier: '#1d2833',
+  classic: '#2d2e32',
+  graphite: '#1c2630',
+  indigo: '#1c2038',
+  ember: '#211918',
+  glacier: '#232e3a',
   minimal: '#262626',
 };
 
