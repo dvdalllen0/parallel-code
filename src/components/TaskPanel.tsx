@@ -119,17 +119,40 @@ export function TaskPanel(props: TaskPanelProps) {
       changedFilesRef?.focus();
     });
     registerFocusFn(`${id}:prompt`, () => promptRef?.focus());
-    registerFocusFn(`${id}:shell-toolbar`, () => shellToolbarRef?.focus());
+    // shell-toolbar:N focus fns are registered reactively below
     // Individual shell:N and ai-terminal focus fns are registered via TerminalView.onReady
 
     onCleanup(() => {
       unregisterFocusFn(`${id}:title`);
       unregisterFocusFn(`${id}:notes`);
       unregisterFocusFn(`${id}:changed-files`);
-      unregisterFocusFn(`${id}:shell-toolbar`);
+      // shell-toolbar:N cleanup is handled by the reactive effect below
       // Individual shell:N focus fns are cleaned up by their own onCleanup
       unregisterFocusFn(`${id}:ai-terminal`);
       unregisterFocusFn(`${id}:prompt`);
+    });
+  });
+
+  // Reactively register shell-toolbar:N focus fns (count changes with bookmarks)
+  createEffect(() => {
+    const id = props.task.id;
+    const count = 1 + projectBookmarks().length;
+    // Clamp toolbar index when bookmarks are removed
+    if (shellToolbarIdx() >= count) {
+      setShellToolbarIdx(count - 1);
+    }
+    // Register new set
+    for (let n = 0; n < count; n++) {
+      const idx = n; // capture for closure
+      registerFocusFn(`${id}:shell-toolbar:${idx}`, () => {
+        setShellToolbarIdx(idx);
+        shellToolbarRef?.focus();
+      });
+    }
+    onCleanup(() => {
+      for (let i = 0; i < count; i++) {
+        unregisterFocusFn(`${id}:shell-toolbar:${i}`);
+      }
     });
   });
 
@@ -733,17 +756,23 @@ export function TaskPanel(props: TaskPanelProps) {
               ref={shellToolbarRef}
               class="focusable-panel shell-toolbar-panel"
               tabIndex={0}
-              onClick={() => setTaskFocusedPanel(props.task.id, 'shell-toolbar')}
+              onClick={() => setTaskFocusedPanel(props.task.id, `shell-toolbar:${shellToolbarIdx()}`)}
               onFocus={() => setShellToolbarFocused(true)}
               onBlur={() => setShellToolbarFocused(false)}
               onKeyDown={(e) => {
+                // Alt+Arrow is handled by global shortcuts (grid navigation)
+                if (e.altKey) return;
                 const itemCount = 1 + projectBookmarks().length;
                 if (e.key === 'ArrowRight') {
                   e.preventDefault();
-                  setShellToolbarIdx((i) => Math.min(itemCount - 1, i + 1));
+                  const next = Math.min(itemCount - 1, shellToolbarIdx() + 1);
+                  setShellToolbarIdx(next);
+                  setTaskFocusedPanel(props.task.id, `shell-toolbar:${next}`);
                 } else if (e.key === 'ArrowLeft') {
                   e.preventDefault();
-                  setShellToolbarIdx((i) => Math.max(0, i - 1));
+                  const next = Math.max(0, shellToolbarIdx() - 1);
+                  setShellToolbarIdx(next);
+                  setTaskFocusedPanel(props.task.id, `shell-toolbar:${next}`);
                 } else if (e.key === 'Enter') {
                   e.preventDefault();
                   const idx = shellToolbarIdx();

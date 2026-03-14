@@ -453,7 +453,7 @@ export async function closeShell(taskId: string, shellId: string): Promise<void>
   if (closedIndex >= 0) {
     const remaining = store.tasks[taskId]?.shellAgentIds.length ?? 0;
     if (remaining === 0) {
-      setTaskFocusedPanel(taskId, 'shell-toolbar');
+      setTaskFocusedPanel(taskId, 'shell-toolbar:0');
     } else {
       const focusIndex = Math.min(closedIndex, remaining - 1);
       setTaskFocusedPanel(taskId, `shell:${focusIndex}`);

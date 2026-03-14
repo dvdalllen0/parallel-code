@@ -36,7 +36,7 @@ export function triggerAction(key: string): void {
 //
 //        col 0           col 1         col 2 ...
 // row 0: notes           changed-files
-// row 1: shell-toolbar                           (always present)
+// row 1: shell-toolbar:0   shell-toolbar:1  ...   (always present, one per button)
 // row 2: shell:0         shell:1       shell:2   (only if shells exist)
 // row 3: ai-terminal
 // row 4: prompt
@@ -44,7 +44,10 @@ export function triggerAction(key: string): void {
 function buildGrid(panelId: string): string[][] {
   const task = store.tasks[panelId];
   if (task) {
-    const grid: string[][] = [['title'], ['notes', 'changed-files'], ['shell-toolbar']];
+    const bookmarkCount =
+      store.projects.find((p) => p.id === task.projectId)?.terminalBookmarks?.length ?? 0;
+    const toolbarCols = Array.from({ length: 1 + bookmarkCount }, (_, i) => `shell-toolbar:${i}`);
+    const grid: string[][] = [['title'], ['notes', 'changed-files'], toolbarCols];
     if (task.shellAgentIds.length > 0) {
       grid.push(task.shellAgentIds.map((_, i) => `shell:${i}`));
     }
