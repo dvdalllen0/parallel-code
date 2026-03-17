@@ -350,6 +350,7 @@ export function registerAllHandlers(win: BrowserWindow): void {
   });
 
   // --- Notifications (fire-and-forget via ipcMain.on) ---
+  const activeNotifications = new Set<Notification>();
   ipcMain.on(IPC.ShowNotification, (_e, args) => {
     try {
       if (!Notification.isSupported()) return;
@@ -360,18 +361,25 @@ export function registerAllHandlers(win: BrowserWindow): void {
         title: args.title,
         body: args.body,
       });
+      activeNotifications.add(notification);
+      const release = () => activeNotifications.delete(notification);
       notification.on('click', () => {
+        release();
         if (!win.isDestroyed()) {
           win.show();
           win.focus();
           win.webContents.send(IPC.NotificationClicked, { taskIds: args.taskIds });
         }
       });
+      notification.on('close', release);
       notification.show();
       // On Linux, notifications may not auto-dismiss. Close after 30 seconds
       // to prevent accumulation in the notification tray.
       if (process.platform === 'linux') {
-        setTimeout(() => notification.close(), 30_000);
+        setTimeout(() => {
+          notification.close();
+          release();
+        }, 30_000);
       }
     } catch (err) {
       console.warn('ShowNotification failed:', err);
