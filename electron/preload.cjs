@@ -79,6 +79,9 @@ const ALLOWED_CHANNELS = new Set([
   // Ask about code
   'ask_about_code',
   'cancel_ask_about_code',
+  // Notifications
+  'show_notification',
+  'notification_clicked',
 ]);
 
 function isAllowedChannel(channel) {
@@ -90,6 +93,10 @@ contextBridge.exposeInMainWorld('electron', {
     invoke: (channel, ...args) => {
       if (!isAllowedChannel(channel)) throw new Error(`Blocked IPC channel: ${channel}`);
       return ipcRenderer.invoke(channel, ...args);
+    },
+    send: (channel, ...args) => {
+      if (!isAllowedChannel(channel)) throw new Error(`Blocked IPC channel: ${channel}`);
+      ipcRenderer.send(channel, ...args);
     },
     on: (channel, listener) => {
       if (!isAllowedChannel(channel)) throw new Error(`Blocked IPC channel: ${channel}`);

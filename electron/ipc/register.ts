@@ -1,4 +1,4 @@
-import { ipcMain, dialog, shell, app, BrowserWindow } from 'electron';
+import { ipcMain, dialog, shell, app, BrowserWindow, Notification } from 'electron';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { IPC } from './channels.js';
@@ -321,6 +321,29 @@ export function registerAllHandlers(win: BrowserWindow): void {
   ipcMain.handle(IPC.CancelAskAboutCode, (_e, args) => {
     assertString(args.requestId, 'requestId');
     cancelAskAboutCode(args.requestId);
+  });
+
+  // --- Notifications (fire-and-forget via ipcMain.on) ---
+  ipcMain.on(IPC.ShowNotification, (_e, args) => {
+    try {
+      assertString(args.title, 'title');
+      assertString(args.body, 'body');
+      assertStringArray(args.taskIds, 'taskIds');
+      const notification = new Notification({
+        title: args.title,
+        body: args.body,
+      });
+      notification.on('click', () => {
+        if (!win.isDestroyed()) {
+          win.show();
+          win.focus();
+          win.webContents.send(IPC.NotificationClicked, { taskIds: args.taskIds });
+        }
+      });
+      notification.show();
+    } catch (err) {
+      console.warn('ShowNotification failed:', err);
+    }
   });
 
   // --- Window management ---
