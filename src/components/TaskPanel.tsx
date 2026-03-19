@@ -386,29 +386,29 @@ export function TaskPanel(props: TaskPanelProps) {
   }
 
   function branchInfoBar(): PanelChild {
+    const editorTitle = () =>
+      store.editorCommand
+        ? `Click to open in ${store.editorCommand} · ${isMac ? 'Cmd' : 'Ctrl'}+Click to reveal in file manager`
+        : 'Click to reveal in file manager';
+
+    const handleOpenInEditor = (e: MouseEvent) => {
+      if (store.editorCommand && !e.ctrlKey && !e.metaKey) {
+        openInEditor(store.editorCommand, props.task.worktreePath).catch((err) =>
+          showNotification(
+            `Editor failed: ${err instanceof Error ? err.message : 'unknown error'}`,
+          ),
+        );
+      } else {
+        revealItemInDir(props.task.worktreePath).catch(() => {});
+      }
+    };
+
     return {
       id: 'branch',
       initialSize: 28,
       fixed: true,
       content: () => (
-        <InfoBar
-          title={
-            store.editorCommand
-              ? `Click to open in ${store.editorCommand} · ${isMac ? 'Cmd' : 'Ctrl'}+Click to reveal in file manager`
-              : props.task.worktreePath
-          }
-          onClick={(e?: MouseEvent) => {
-            if (store.editorCommand && !(e && (e.ctrlKey || e.metaKey))) {
-              openInEditor(store.editorCommand, props.task.worktreePath).catch((err) =>
-                showNotification(
-                  `Editor failed: ${err instanceof Error ? err.message : 'unknown error'}`,
-                ),
-              );
-            } else {
-              revealItemInDir(props.task.worktreePath).catch(() => {});
-            }
-          }}
-        >
+        <InfoBar>
           {(() => {
             const project = getProject(props.task.projectId);
             return (
@@ -416,10 +416,7 @@ export function TaskPanel(props: TaskPanelProps) {
                 {(p) => (
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingProjectId(p().id);
-                    }}
+                    onClick={() => setEditingProjectId(p().id)}
                     title="Project settings"
                     style={{
                       display: 'inline-flex',
@@ -427,8 +424,9 @@ export function TaskPanel(props: TaskPanelProps) {
                       gap: '4px',
                       background: 'transparent',
                       border: 'none',
-                      padding: '0',
-                      margin: '0 12px 0 0',
+                      padding: '0 4px',
+                      margin: '0 8px 0 0',
+                      'align-self': 'stretch',
                       color: 'inherit',
                       cursor: 'pointer',
                       'font-family': 'inherit',
@@ -454,19 +452,17 @@ export function TaskPanel(props: TaskPanelProps) {
             {(url) => (
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(url(), '_blank');
-                }}
+                onClick={() => window.open(url(), '_blank')}
                 title={url()}
                 style={{
                   display: 'inline-flex',
                   'align-items': 'center',
                   gap: '4px',
-                  'margin-right': '12px',
+                  'margin-right': '8px',
                   background: 'transparent',
                   border: 'none',
-                  padding: '0',
+                  padding: '0 4px',
+                  'align-self': 'stretch',
                   color: theme.accent,
                   cursor: 'pointer',
                   'font-family': 'inherit',
@@ -486,12 +482,23 @@ export function TaskPanel(props: TaskPanelProps) {
               </button>
             )}
           </Show>
-          <span
+          <button
+            type="button"
+            title={editorTitle()}
+            onClick={handleOpenInEditor}
             style={{
               display: 'inline-flex',
               'align-items': 'center',
               gap: '4px',
               'margin-right': '12px',
+              'align-self': 'stretch',
+              background: 'transparent',
+              border: 'none',
+              padding: '0 4px',
+              color: 'inherit',
+              cursor: 'pointer',
+              'font-family': 'inherit',
+              'font-size': 'inherit',
             }}
           >
             <svg
@@ -519,9 +526,25 @@ export function TaskPanel(props: TaskPanelProps) {
                 {props.task.branchName}
               </span>
             </Show>
-          </span>
-          <span
-            style={{ display: 'inline-flex', 'align-items': 'center', gap: '4px', opacity: 0.6 }}
+          </button>
+          <button
+            type="button"
+            title={editorTitle()}
+            onClick={handleOpenInEditor}
+            style={{
+              display: 'inline-flex',
+              'align-items': 'center',
+              gap: '4px',
+              'align-self': 'stretch',
+              background: 'transparent',
+              border: 'none',
+              padding: '0 4px',
+              color: 'inherit',
+              cursor: 'pointer',
+              opacity: 0.6,
+              'font-family': 'inherit',
+              'font-size': 'inherit',
+            }}
           >
             <svg
               width="12"
@@ -533,7 +556,7 @@ export function TaskPanel(props: TaskPanelProps) {
               <path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75Z" />
             </svg>
             {props.task.worktreePath}
-          </span>
+          </button>
         </InfoBar>
       ),
     };
