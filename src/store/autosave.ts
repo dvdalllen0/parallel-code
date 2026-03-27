@@ -43,6 +43,7 @@ function persistedSnapshot(): string {
               name: t.name,
               gitIsolation: t.gitIsolation,
               baseBranch: t.baseBranch,
+              branchName: t.branchName,
               savedInitialPrompt: t.savedInitialPrompt,
               collapsed: t.collapsed,
             },
