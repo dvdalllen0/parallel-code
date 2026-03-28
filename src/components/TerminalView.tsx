@@ -191,9 +191,17 @@ export function TerminalView(props: TerminalViewProps) {
 
       if (isPaste) {
         e.preventDefault();
-        navigator.clipboard.readText().then((text) => {
-          if (text) enqueueInput(text);
-        });
+        (async () => {
+          // Try text first (readText throws if clipboard has no text)
+          const text = await navigator.clipboard.readText().catch(() => '');
+          if (text) {
+            enqueueInput(text);
+            return;
+          }
+          // Fall back to clipboard image → save to temp file and paste path
+          const filePath = await invoke<string | null>(IPC.SaveClipboardImage);
+          if (filePath) enqueueInput(filePath);
+        })();
         return false;
       }
 

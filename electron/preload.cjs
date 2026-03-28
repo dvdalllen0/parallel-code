@@ -93,6 +93,8 @@ const ALLOWED_CHANNELS = new Set([
   // File links
   'open_path',
   'read_file_text',
+  // Clipboard
+  'save_clipboard_image',
   // Notifications
   'show_notification',
   'notification_clicked',
