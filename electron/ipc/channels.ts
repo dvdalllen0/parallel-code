@@ -102,6 +102,9 @@ export enum IPC {
   OpenPath = 'open_path',
   ReadFileText = 'read_file_text',
 
+  // Clipboard
+  SaveClipboardImage = 'save_clipboard_image',
+
   // Notifications
   ShowNotification = 'show_notification',
   NotificationClicked = 'notification_clicked',

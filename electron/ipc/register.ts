@@ -1,5 +1,6 @@
-import { ipcMain, dialog, shell, app, BrowserWindow, Notification } from 'electron';
+import { ipcMain, dialog, shell, app, clipboard, BrowserWindow, Notification } from 'electron';
 import fs from 'fs';
+import os from 'os';
 import { fileURLToPath } from 'url';
 import { IPC } from './channels.js';
 import {
@@ -461,6 +462,20 @@ export function registerAllHandlers(win: BrowserWindow): void {
   ipcMain.handle(IPC.ReadFileText, (_e, args) => {
     validatePath(args.filePath, 'filePath');
     return fs.readFileSync(args.filePath, 'utf8');
+  });
+
+  // --- Clipboard ---
+  const clipboardImagePath = path.join(os.tmpdir(), 'parallel-code-clipboard.png');
+  ipcMain.handle(IPC.SaveClipboardImage, async () => {
+    try {
+      const img = clipboard.readImage();
+      if (img.isEmpty()) return null;
+      const buf = img.toPNG();
+      await fs.promises.writeFile(clipboardImagePath, buf);
+      return clipboardImagePath;
+    } catch {
+      return null;
+    }
   });
 
   // --- System ---
