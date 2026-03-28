@@ -465,14 +465,17 @@ export function registerAllHandlers(win: BrowserWindow): void {
   });
 
   // --- Clipboard ---
-  ipcMain.handle(IPC.SaveClipboardImage, () => {
-    const img = clipboard.readImage();
-    if (img.isEmpty()) return null;
-    const buf = img.toPNG();
-    const tmpDir = os.tmpdir();
-    const filePath = path.join(tmpDir, `clipboard-${Date.now()}.png`);
-    fs.writeFileSync(filePath, buf);
-    return filePath;
+  const clipboardImagePath = path.join(os.tmpdir(), 'parallel-code-clipboard.png');
+  ipcMain.handle(IPC.SaveClipboardImage, async () => {
+    try {
+      const img = clipboard.readImage();
+      if (img.isEmpty()) return null;
+      const buf = img.toPNG();
+      await fs.promises.writeFile(clipboardImagePath, buf);
+      return clipboardImagePath;
+    } catch {
+      return null;
+    }
   });
 
   // --- System ---
