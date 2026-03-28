@@ -452,6 +452,17 @@ export function registerAllHandlers(win: BrowserWindow): void {
     cancelAskAboutCode(args.requestId);
   });
 
+  // --- File links ---
+  ipcMain.handle(IPC.OpenPath, (_e, args) => {
+    validatePath(args.filePath, 'filePath');
+    return shell.openPath(args.filePath);
+  });
+
+  ipcMain.handle(IPC.ReadFileText, (_e, args) => {
+    validatePath(args.filePath, 'filePath');
+    return fs.readFileSync(args.filePath, 'utf8');
+  });
+
   // --- System ---
   ipcMain.handle(IPC.GetSystemFonts, () => getSystemMonospaceFonts());
 
