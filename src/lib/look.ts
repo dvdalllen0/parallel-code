@@ -6,6 +6,7 @@ export type LookPreset =
   | 'ember'
   | 'glacier'
   | 'minimal'
+  | 'paper'
   | 'zenburnesque';
 
 export interface LookPresetOption {
@@ -49,6 +50,11 @@ export const LOOK_PRESETS: LookPresetOption[] = [
     id: 'glacier',
     label: 'Glacier',
     description: 'Clean teal accents with softer depth',
+  },
+  {
+    id: 'paper',
+    label: 'Paper',
+    description: 'Bright warm canvas with crisp blue accents',
   },
   {
     id: 'zenburnesque',

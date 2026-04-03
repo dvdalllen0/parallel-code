@@ -73,7 +73,7 @@ When you're happy with the result, merge the branch back to main from the sideba
 - Built-in diff viewer and changed files list per task
 - Shell terminals per task, scoped to the worktree
 - Direct mode for working on the main branch without isolation
-- Six themes — Minimal, Graphite, Classic, Indigo, Ember, Glacier
+- Nine themes — Minimal, Graphite, Midnight, Classic, Indigo, Ember, Glacier, Paper, Zenburnesque
 - State persists across restarts
 - macOS and Linux
 

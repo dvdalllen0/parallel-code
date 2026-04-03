@@ -39,23 +39,74 @@ export const theme = {
   taskPanelBg: 'var(--task-panel-bg)',
 } as const;
 
-/** Opaque terminal background per preset — matches --task-panel-bg */
-const terminalBackground: Record<LookPreset, string> = {
-  classic: '#2d2e32',
-  graphite: '#1c2630',
-  midnight: '#000000',
-  indigo: '#1c2038',
-  ember: '#211918',
-  glacier: '#232e3a',
-  minimal: '#262626',
-  zenburnesque: '#2e2d2a',
+type TerminalThemeColors = {
+  background: string;
+  foreground: string;
+  cursor: string;
+  selectionBackground: string;
+};
+
+/** Opaque terminal colors per preset — aligned with the task panel palette. */
+const terminalColors: Record<LookPreset, TerminalThemeColors> = {
+  classic: {
+    background: '#2d2e32',
+    foreground: '#cccdd2',
+    cursor: '#4c6fff',
+    selectionBackground: '#4c6fff33',
+  },
+  graphite: {
+    background: '#1c2630',
+    foreground: '#d7e4f0',
+    cursor: '#2ec8ff',
+    selectionBackground: '#2ec8ff33',
+  },
+  midnight: {
+    background: '#000000',
+    foreground: '#d7e4f0',
+    cursor: '#2ec8ff',
+    selectionBackground: '#2ec8ff33',
+  },
+  indigo: {
+    background: '#1c2038',
+    foreground: '#deddff',
+    cursor: '#7a78ff',
+    selectionBackground: '#7a78ff33',
+  },
+  ember: {
+    background: '#211918',
+    foreground: '#f2ddd1',
+    cursor: '#ff944d',
+    selectionBackground: '#ff944d33',
+  },
+  glacier: {
+    background: '#232e3a',
+    foreground: '#e5eff5',
+    cursor: '#50e2d3',
+    selectionBackground: '#50e2d333',
+  },
+  minimal: {
+    background: '#262626',
+    foreground: '#ececec',
+    cursor: '#c8bfa0',
+    selectionBackground: '#c8bfa033',
+  },
+  paper: {
+    background: '#fbfcfe',
+    foreground: '#18212b',
+    cursor: '#2563eb',
+    selectionBackground: '#2563eb22',
+  },
+  zenburnesque: {
+    background: '#2e2d2a',
+    foreground: '#dcdccc',
+    cursor: '#cc9393',
+    selectionBackground: '#cc939333',
+  },
 };
 
 /** Returns an xterm-compatible theme object for the given preset */
 export function getTerminalTheme(preset: LookPreset) {
-  return {
-    background: terminalBackground[preset],
-  };
+  return terminalColors[preset];
 }
 
 /** Generates a styled banner (warning/error/info) using color-mix for background+border. */

@@ -2,6 +2,7 @@ import * as monaco from 'monaco-editor';
 import type { LookPreset } from './look';
 
 interface PresetColors {
+  base: 'vs-dark' | 'vs';
   bgElevated: string;
   fg: string;
   fgMuted: string;
@@ -14,6 +15,7 @@ interface PresetColors {
 // but may intentionally diverge (e.g. midnight uses #000 editor background for OLED).
 // Diff highlight colors use the GitHub Dark palette (shared across all presets).
 const graphiteColors: PresetColors = {
+  base: 'vs-dark',
   bgElevated: '#1c2630',
   fg: '#d7e4f0',
   fgMuted: '#9bb0c3',
@@ -24,6 +26,7 @@ const graphiteColors: PresetColors = {
 
 const presetColors: Record<LookPreset, PresetColors> = {
   classic: {
+    base: 'vs-dark',
     bgElevated: '#2d2e32',
     fg: '#cccdd2',
     fgMuted: '#8b8d93',
@@ -37,6 +40,7 @@ const presetColors: Record<LookPreset, PresetColors> = {
     bgElevated: '#000000',
   },
   indigo: {
+    base: 'vs-dark',
     bgElevated: '#1c2038',
     fg: '#deddff',
     fgMuted: '#b1b2de',
@@ -45,6 +49,7 @@ const presetColors: Record<LookPreset, PresetColors> = {
     accent: '#7a78ff',
   },
   ember: {
+    base: 'vs-dark',
     bgElevated: '#211918',
     fg: '#f2ddd1',
     fgMuted: '#d5ab94',
@@ -53,6 +58,7 @@ const presetColors: Record<LookPreset, PresetColors> = {
     accent: '#ff944d',
   },
   glacier: {
+    base: 'vs-dark',
     bgElevated: '#232e3a',
     fg: '#e5eff5',
     fgMuted: '#bed2dc',
@@ -61,6 +67,7 @@ const presetColors: Record<LookPreset, PresetColors> = {
     accent: '#50e2d3',
   },
   minimal: {
+    base: 'vs-dark',
     bgElevated: '#161514',
     fg: '#e8e8e8',
     fgMuted: '#b8b8b8',
@@ -69,6 +76,7 @@ const presetColors: Record<LookPreset, PresetColors> = {
     accent: '#c8bfa0',
   },
   zenburnesque: {
+    base: 'vs-dark',
     bgElevated: '#2e2d2a',
     fg: '#dcdccc',
     fgMuted: '#a0a090',
@@ -76,11 +84,21 @@ const presetColors: Record<LookPreset, PresetColors> = {
     border: '#484640',
     accent: '#cc9393',
   },
+  paper: {
+    base: 'vs',
+    bgElevated: '#ffffff',
+    fg: '#18212b',
+    fgMuted: '#4f6277',
+    fgSubtle: '#6f8092',
+    border: '#cfd8e3',
+    accent: '#2563eb',
+  },
 };
 
 function buildThemeData(c: PresetColors): monaco.editor.IStandaloneThemeData {
+  const isLight = c.base === 'vs';
   return {
-    base: 'vs-dark',
+    base: c.base,
     inherit: true,
     rules: [
       { token: 'comment', foreground: c.fgSubtle.slice(1) },
@@ -89,19 +107,18 @@ function buildThemeData(c: PresetColors): monaco.editor.IStandaloneThemeData {
     colors: {
       'editor.background': c.bgElevated,
       'editor.foreground': c.fg,
-      'editor.lineHighlightBackground': '#ffffff06',
+      'editor.lineHighlightBackground': isLight ? '#00000008' : '#ffffff06',
       'editorLineNumber.foreground': c.fgSubtle,
       'editorLineNumber.activeForeground': c.fgMuted,
-      'editor.selectionBackground': c.accent + '33',
+      'editor.selectionBackground': c.accent + (isLight ? '22' : '33'),
       'editorWidget.background': c.bgElevated,
       'editorWidget.border': c.border,
-      // GitHub-inspired diff palette, toned down for dark backgrounds
-      'diffEditor.insertedLineBackground': '#2ea04315',
-      'diffEditor.removedLineBackground': '#f8514915',
-      'diffEditor.insertedTextBackground': '#2ea04340',
-      'diffEditor.removedTextBackground': '#f8514940',
-      'diffEditorGutter.insertedLineBackground': '#2ea04326',
-      'diffEditorGutter.removedLineBackground': '#f8514926',
+      'diffEditor.insertedLineBackground': isLight ? '#2da44e14' : '#2ea04315',
+      'diffEditor.removedLineBackground': isLight ? '#cf222e14' : '#f8514915',
+      'diffEditor.insertedTextBackground': isLight ? '#2da44e30' : '#2ea04340',
+      'diffEditor.removedTextBackground': isLight ? '#cf222e30' : '#f8514940',
+      'diffEditorGutter.insertedLineBackground': isLight ? '#2da44e22' : '#2ea04326',
+      'diffEditorGutter.removedLineBackground': isLight ? '#cf222e22' : '#f8514926',
       'diffEditor.unchangedRegionBackground': c.border,
       'diffEditor.unchangedRegionForeground': c.fgMuted,
       'diffEditor.unchangedRegionShadow': '#00000000',
