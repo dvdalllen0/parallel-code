@@ -51,6 +51,15 @@ const DEFAULT_AGENTS: AgentDef[] = [
     skip_permissions_args: [],
     description: 'Open source AI coding agent (opencode.ai)',
   },
+  {
+    id: 'kilo',
+    name: 'Kilo Code',
+    command: 'kilo',
+    args: [],
+    resume_args: [],
+    skip_permissions_args: [],
+    description: 'Kilo Code CLI - 500+ AI models (kilo.ai)',
+  },
 ];
 
 async function isCommandAvailable(command: string): Promise<boolean> {
